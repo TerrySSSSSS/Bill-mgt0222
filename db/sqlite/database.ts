@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 import { Account, CREATE_ACCOUNTS_TABLE, CREATE_TRANSACTIONS_TABLE, Transaction } from './schema';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -6,14 +7,25 @@ let db: SQLite.SQLiteDatabase | null = null;
 // 初始化数据库
 export async function initDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
-  
-  db = await SQLite.openDatabaseAsync('billing.db');
-  
-  // 创建表
-  await db.execAsync(CREATE_ACCOUNTS_TABLE);
-  await db.execAsync(CREATE_TRANSACTIONS_TABLE);
-  
-  return db;
+
+  try {
+    // Web 平台需要特殊处理 SQLite WASM
+    if (Platform.OS === 'web') {
+      console.log('Initializing SQLite for web platform with WASM...');
+    }
+
+    db = await SQLite.openDatabaseAsync('billing.db');
+
+    // 创建表
+    await db.execAsync(CREATE_ACCOUNTS_TABLE);
+    await db.execAsync(CREATE_TRANSACTIONS_TABLE);
+
+    console.log('Database initialized successfully');
+    return db;
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    throw error;
+  }
 }
 
 // 获取数据库实例

@@ -2,14 +2,17 @@ import { BalanceCard } from '@/components/BalanceCard';
 import { EmptyState } from '@/components/EmptyState';
 import { FloatingActionButton } from '@/components/FloatingActionButton';
 import { TransactionItem } from '@/components/TransactionItem';
+import ImageBillInput from '@/components/ImageBillInput';
+import VoiceBillInput from '@/components/VoiceBillInput';
 import { Colors } from '@/constants/theme';
 import { Transaction } from '@/db/sqlite/schema';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAccountStore } from '@/store/useAccountStore';
 import { useTransactionStore } from '@/store/useTransactionStore';
+import { BillData } from '@/services/insforge-ai';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Bell, Search } from 'lucide-react-native';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,6 +23,9 @@ export default function HomeScreen() {
 
   const { totalBalance, fetchAccounts } = useAccountStore();
   const { recentTransactions, income, expense, fetchRecentTransactions, fetchSummary, removeTransaction } = useTransactionStore();
+
+  const [showImageInput, setShowImageInput] = useState(false);
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -38,6 +44,24 @@ export default function HomeScreen() {
   const handleDeleteTransaction = async (id: number) => {
     await removeTransaction(id);
     fetchAccounts(); // 刷新账户余额
+  };
+
+  const handleCameraInput = () => {
+    setShowImageInput(true);
+  };
+
+  const handleVoiceInput = () => {
+    setShowVoiceInput(true);
+  };
+
+  const handleAIResult = (billData: BillData) => {
+    // 将 AI 识别结果作为参数传递到添加交易页面
+    router.push({
+      pathname: '/add-transaction',
+      params: {
+        aiData: JSON.stringify(billData)
+      }
+    });
   };
 
   return (
@@ -77,7 +101,23 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
-      <FloatingActionButton onAddTransaction={handleAddTransaction} />
+      <FloatingActionButton
+        onAddTransaction={handleAddTransaction}
+        onCameraInput={handleCameraInput}
+        onVoiceInput={handleVoiceInput}
+      />
+
+      <ImageBillInput
+        visible={showImageInput}
+        onClose={() => setShowImageInput(false)}
+        onComplete={handleAIResult}
+      />
+
+      <VoiceBillInput
+        visible={showVoiceInput}
+        onClose={() => setShowVoiceInput(false)}
+        onComplete={handleAIResult}
+      />
     </SafeAreaView>
   );
 }

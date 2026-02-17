@@ -75,10 +75,15 @@ export function TransactionItem({
         </View>
 
         <View style={styles.info}>
-          <Text style={[styles.category, { color: colors.text }]}>{transaction.category}</Text>
-          <Text style={[styles.meta, { color: colors.textSecondary }]}>
-            {formatRelativeDate(transaction.date)}
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+            {transaction.description || transaction.category}
+          </Text>
+          <Text style={[styles.content, { color: colors.textSecondary }]} numberOfLines={1}>
+            {transaction.category}
             {transaction.account_name && ` · ${transaction.account_name}`}
+          </Text>
+          <Text style={[styles.time, { color: colors.textSecondary }]}>
+            {formatRelativeDate(transaction.date)}
           </Text>
         </View>
 
@@ -129,14 +134,19 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
     marginLeft: 12,
+    justifyContent: 'center',
   },
-  category: {
-    fontSize: 16,
-    fontWeight: '500',
+  title: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  meta: {
-    fontSize: 12,
-    marginTop: 2,
+  content: {
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  time: {
+    fontSize: 11,
   },
   amount: {
     fontSize: 16,

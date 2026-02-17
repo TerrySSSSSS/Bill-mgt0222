@@ -7,6 +7,9 @@ export interface Account {
   icon: string;
   color: string;
   created_at: string;
+  user_id?: string; // 关联用户 ID
+  synced?: boolean; // 是否已同步到云端
+  last_sync?: string; // 最后同步时间
 }
 
 export interface Transaction {
@@ -20,6 +23,11 @@ export interface Transaction {
   date: string;
   description: string;
   created_at: string;
+  user_id?: string; // 关联用户 ID
+  synced?: boolean; // 是否已同步到云端
+  last_sync?: string; // 最后同步时间
+  invoice_image_url?: string; // 发票图片 URL
+  voice_note_url?: string; // 语音备注 URL
 }
 
 // 创建表的SQL语句
@@ -30,7 +38,10 @@ export const CREATE_ACCOUNTS_TABLE = `
     balance REAL DEFAULT 0,
     icon TEXT DEFAULT 'wallet',
     color TEXT DEFAULT '#60A5FA',
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    user_id TEXT,
+    synced INTEGER DEFAULT 0,
+    last_sync TEXT
   );
 `;
 
@@ -45,6 +56,11 @@ export const CREATE_TRANSACTIONS_TABLE = `
     date TEXT NOT NULL,
     description TEXT DEFAULT '',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    user_id TEXT,
+    synced INTEGER DEFAULT 0,
+    last_sync TEXT,
+    invoice_image_url TEXT,
+    voice_note_url TEXT,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
   );
 `;

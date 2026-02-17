@@ -9,6 +9,11 @@ import { ChevronDown, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import TextBillInput from '@/components/TextBillInput';
+import VoiceBillInput from '@/components/VoiceBillInput';
+import ImageBillInput from '@/components/ImageBillInput';
+import { BillData } from '@/services/insforge-ai';
+import { matchCategory } from '@/utils/category-matcher';
 
 type TransactionType = 'expense' | 'income';
 
@@ -16,7 +21,7 @@ export default function AddTransactionScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, aiData } = useLocalSearchParams<{ id?: string; aiData?: string }>();
   const isEditMode = !!id;
 
   const { accounts, fetchAccounts } = useAccountStore();
@@ -30,6 +35,11 @@ export default function AddTransactionScreen() {
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [originalDate, setOriginalDate] = useState<string | null>(null);
+
+  // AI 智能输入 Modal 状态
+  const [showTextInput, setShowTextInput] = useState(false);
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
+  const [showImageInput, setShowImageInput] = useState(false);
 
   // 加载账户数据
   useEffect(() => { fetchAccounts(); }, []);
@@ -55,6 +65,18 @@ export default function AddTransactionScreen() {
     }
   }, [type, isEditMode]);
 
+  // 处理从主页面传递过来的 AI 识别结果
+  useEffect(() => {
+    if (aiData && !isEditMode) {
+      try {
+        const billData: BillData = JSON.parse(aiData);
+        handleAIResult(billData);
+      } catch (error) {
+        console.error('解析 AI 数据失败:', error);
+      }
+    }
+  }, [aiData, isEditMode]);
+
   const loadTransaction = async (transactionId: number) => {
     setIsLoading(true);
     try {
@@ -76,6 +98,24 @@ export default function AddTransactionScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 处理 AI 识别结果
+  const handleAIResult = (billData: BillData) => {
+    // 设置交易类型
+    setType(billData.type);
+
+    // 设置金额
+    setAmount(billData.amount.toString());
+
+    // 设置描述
+    setDescription(billData.description);
+
+    // 智能匹配分类
+    const matchedCategory = matchCategory(billData.category, billData.type);
+    setSelectedCategory(matchedCategory);
+
+    console.log('✅ AI 识别结果已应用到表单:', billData);
   };
 
   const handleSave = async () => {
@@ -130,6 +170,36 @@ export default function AddTransactionScreen() {
         </TouchableOpacity>
       </View>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* AI 智能输入按钮 */}
+        {!isEditMode && (
+          <View style={[styles.aiInputSection, { backgroundColor: colors.card }]}>
+            <Text style={[styles.aiInputTitle, { color: colors.text }]}>🤖 AI 智能输入</Text>
+            <View style={styles.aiButtonRow}>
+              <TouchableOpacity
+                style={[styles.aiButton, { backgroundColor: colors.primary }]}
+                onPress={() => setShowTextInput(true)}
+              >
+                <Text style={styles.aiButtonIcon}>📝</Text>
+                <Text style={styles.aiButtonText}>文本</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.aiButton, { backgroundColor: colors.income }]}
+                onPress={() => setShowVoiceInput(true)}
+              >
+                <Text style={styles.aiButtonIcon}>🎤</Text>
+                <Text style={styles.aiButtonText}>语音</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.aiButton, { backgroundColor: colors.expense }]}
+                onPress={() => setShowImageInput(true)}
+              >
+                <Text style={styles.aiButtonIcon}>📷</Text>
+                <Text style={styles.aiButtonText}>拍照</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         <View style={styles.typeSelector}>
           <TouchableOpacity style={[styles.typeBtn, type === 'expense' && { backgroundColor: colors.expense }]} onPress={() => setType('expense')}>
             <Text style={[styles.typeText, { color: type === 'expense' ? '#FFF' : colors.textSecondary }]}>支出</Text>
@@ -170,31 +240,54 @@ export default function AddTransactionScreen() {
           <TextInput style={[styles.descInput, { color: colors.text, borderColor: colors.border }]} placeholder="添加备注..." placeholderTextColor={colors.textSecondary} value={description} onChangeText={setDescription} />
         </View>
       </ScrollView>
+
+      {/* AI 智能输入 Modals */}
+      <TextBillInput
+        visible={showTextInput}
+        onClose={() => setShowTextInput(false)}
+        onComplete={handleAIResult}
+      />
+      <VoiceBillInput
+        visible={showVoiceInput}
+        onClose={() => setShowVoiceInput(false)}
+        onComplete={handleAIResult}
+      />
+      <ImageBillInput
+        visible={showImageInput}
+        onClose={() => setShowImageInput(false)}
+        onComplete={handleAIResult}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16 },
-  title: { fontSize: 18, fontWeight: '600' },
-  saveBtn: { fontSize: 16, fontWeight: '600' },
-  typeSelector: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 20, gap: 12 },
-  typeBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
-  typeText: { fontSize: 16, fontWeight: '500' },
-  amountCard: { marginHorizontal: 20, borderRadius: 16, padding: 20, marginBottom: 16 },
-  amountLabel: { fontSize: 14 },
-  amountRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  currency: { fontSize: 32, fontWeight: 'bold', marginRight: 8 },
-  amountInput: { flex: 1, fontSize: 32, fontWeight: 'bold' },
-  section: { marginHorizontal: 20, borderRadius: 16, padding: 16, marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
-  accountSelector: { marginHorizontal: 20, borderRadius: 16, padding: 16, marginBottom: 16 },
-  accountLabel: { fontSize: 14 },
-  accountValue: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
-  accountName: { fontSize: 16, fontWeight: '500' },
-  accountList: { marginHorizontal: 20, borderRadius: 16, marginBottom: 16, overflow: 'hidden' },
-  accountItem: { padding: 16 },
-  accountItemText: { fontSize: 16 },
-  descInput: { borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 16 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+  title: { fontSize: 17, fontWeight: '600' },
+  saveBtn: { fontSize: 15, fontWeight: '600' },
+  aiInputSection: { marginHorizontal: 16, borderRadius: 12, padding: 12, marginBottom: 12, marginTop: 8 },
+  aiInputTitle: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
+  aiButtonRow: { flexDirection: 'row', gap: 8 },
+  aiButton: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  aiButtonIcon: { fontSize: 20, marginBottom: 2 },
+  aiButtonText: { fontSize: 11, fontWeight: '600', color: '#FFFFFF' },
+  typeSelector: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, gap: 8 },
+  typeBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: '#F5F5F5' },
+  typeText: { fontSize: 15, fontWeight: '500' },
+  amountCard: { marginHorizontal: 16, borderRadius: 12, padding: 16, marginBottom: 12 },
+  amountLabel: { fontSize: 13, marginBottom: 4 },
+  amountRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  currency: { fontSize: 28, fontWeight: 'bold', marginRight: 6 },
+  amountInput: { flex: 1, fontSize: 28, fontWeight: 'bold' },
+  section: { marginHorizontal: 16, borderRadius: 12, padding: 14, marginBottom: 12 },
+  sectionTitle: { fontSize: 14, fontWeight: '600', marginBottom: 10 },
+  accountSelector: { marginHorizontal: 16, borderRadius: 12, padding: 14, marginBottom: 12 },
+  accountLabel: { fontSize: 13, marginBottom: 6 },
+  accountValue: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  accountName: { fontSize: 15, fontWeight: '500' },
+  accountList: { marginHorizontal: 16, borderRadius: 12, marginBottom: 12, overflow: 'hidden' },
+  accountItem: { padding: 14 },
+  accountItemText: { fontSize: 15 },
+  descInput: { borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 15 },
 });
