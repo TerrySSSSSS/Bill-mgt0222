@@ -1,20 +1,12 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  register,
   login,
   logout,
-  getCurrentUser,
   registerWithVerification,
+  sendVerificationEmail,
   User,
 } from '@/services/insforge-auth';
-
-interface UserRegistration {
-  email: string;
-  password: string;
-  username?: string;
-  code?: string;
-}
 
 interface UserRegistrationWithCode {
   email: string;
@@ -36,7 +28,7 @@ interface AuthState {
   error: string | null;
 
   // Actions
-  register: (data: UserRegistration) => Promise<void>;
+  sendCode: (email: string) => Promise<void>;
   registerWithCode: (data: UserRegistrationWithCode) => Promise<void>;
   login: (data: UserLogin) => Promise<void>;
   logout: () => Promise<void>;
@@ -54,26 +46,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
   error: null,
 
-  register: async (data: UserRegistration) => {
+  sendCode: async (email: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await register(data.email, data.password, data.username);
-
-      // 保存 token 和用户信息
-      await AsyncStorage.setItem(TOKEN_KEY, response.accessToken);
-      await AsyncStorage.setItem(USER_KEY, JSON.stringify(response.user));
-
-      set({
-        user: response.user,
-        token: response.accessToken,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      await sendVerificationEmail(email);
+      set({ isLoading: false });
     } catch (error: any) {
-      set({
-        error: error.message || '注册失败',
-        isLoading: false,
-      });
+      set({ error: error.message || '发送验证码失败', isLoading: false });
       throw error;
     }
   },
@@ -88,7 +67,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         data.verificationCode
       );
 
-      // 保存 token 和用户信息
       await AsyncStorage.setItem(TOKEN_KEY, response.accessToken);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(response.user));
 
@@ -99,10 +77,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
       });
     } catch (error: any) {
-      set({
-        error: error.message || '注册失败',
-        isLoading: false,
-      });
+      set({ error: error.message || '注册失败', isLoading: false });
       throw error;
     }
   },
@@ -112,7 +87,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const response = await login(data.email, data.password);
 
-      // 保存 token 和用户信息
       await AsyncStorage.setItem(TOKEN_KEY, response.accessToken);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(response.user));
 
@@ -123,10 +97,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
       });
     } catch (error: any) {
-      set({
-        error: error.message || '登录失败',
-        isLoading: false,
-      });
+      set({ error: error.message || '登录失败', isLoading: false });
       throw error;
     }
   },
@@ -135,8 +106,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       await logout();
-
-      // 清除本地存储
       await AsyncStorage.removeItem(TOKEN_KEY);
       await AsyncStorage.removeItem(USER_KEY);
 
@@ -147,10 +116,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
       });
     } catch (error: any) {
-      set({
-        error: error.message || '退出登录失败',
-        isLoading: false,
-      });
+      set({ error: error.message || '退出登录失败', isLoading: false });
       throw error;
     }
   },
@@ -162,34 +128,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       const userStr = await AsyncStorage.getItem(USER_KEY);
 
       if (token && userStr) {
-        // 验证 token 是否有效
-        try {
-          const currentUser = await getCurrentUser();
-          set({
-            user: currentUser,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } catch (error) {
-          // Token 无效，清除本地存储
-          await AsyncStorage.removeItem(TOKEN_KEY);
-          await AsyncStorage.removeItem(USER_KEY);
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
-        }
+        const user = JSON.parse(userStr);
+        set({ user, token, isAuthenticated: true, isLoading: false });
       } else {
         set({ isLoading: false });
       }
     } catch (error: any) {
-      set({
-        error: error.message || '加载用户信息失败',
-        isLoading: false,
-      });
+      set({ error: error.message || '加载用户信息失败', isLoading: false });
     }
   },
 
