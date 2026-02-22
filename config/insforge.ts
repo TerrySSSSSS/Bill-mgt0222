@@ -83,24 +83,8 @@ export async function checkInsForgeAvailability(): Promise<boolean> {
 
 // 自动检测并配置最佳服务器
 export async function autoConfigureInsForge(): Promise<void> {
-  console.log('Auto-configuring InsForge...');
-
-  // 优先尝试云端服务器
-  useCloudServer();
-  let available = await checkInsForgeAvailability();
-
-  if (!available) {
-    // 如果云端不可用，尝试本地服务器
-    console.log('Cloud server not available, trying local server...');
-    useLocalServer();
-    available = await checkInsForgeAvailability();
-  }
-
-  if (available) {
-    console.log('InsForge configured successfully:', currentConfig.baseURL);
-  } else {
-    console.log('No InsForge server available, running in offline mode');
-  }
+  // 直接使用固定的云端服务器，不做自动检测
+  console.log('InsForge configured:', CLOUD_CONFIG.baseURL);
 }
 
 export default currentConfig;

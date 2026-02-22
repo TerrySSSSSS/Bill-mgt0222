@@ -55,7 +55,7 @@ export default function LoginScreen() {
       return;
     }
     try {
-      await sendCode(email);
+      await sendCode(email, password, username);
       setMode('verify');
       Alert.alert('验证码已发送', `请查收 ${email} 的邮件，输入验证码完成注册`);
     } catch (err: any) {

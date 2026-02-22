@@ -28,7 +28,7 @@ interface AuthState {
   error: string | null;
 
   // Actions
-  sendCode: (email: string) => Promise<void>;
+  sendCode: (email: string, password: string, username: string) => Promise<void>;
   registerWithCode: (data: UserRegistrationWithCode) => Promise<void>;
   login: (data: UserLogin) => Promise<void>;
   logout: () => Promise<void>;
@@ -46,10 +46,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
   error: null,
 
-  sendCode: async (email: string) => {
+  sendCode: async (email: string, password: string, username: string) => {
     set({ isLoading: true, error: null });
     try {
-      await sendVerificationEmail(email);
+      await sendVerificationEmail(email, password, username);
       set({ isLoading: false });
     } catch (error: any) {
       set({ error: error.message || '发送验证码失败', isLoading: false });

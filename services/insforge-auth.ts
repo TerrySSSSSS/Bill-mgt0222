@@ -17,20 +17,33 @@ export interface AuthResponse {
 }
 
 /**
- * 发送注册验证码
+ * 第一步：注册账号并发送验证码
+ * 先 signUp 创建账号，再 resendVerificationEmail 发验证码
  */
-export async function sendVerificationEmail(email: string): Promise<void> {
+export async function sendVerificationEmail(email: string, password: string, username: string): Promise<void> {
   await initInsforgeClient();
   const client = getInsforgeClient();
 
-  const { error } = await client.auth.sendVerificationEmail({ email });
+  // 1. 先注册账号
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    name: username,
+  });
+
   if (error) {
-    throw new Error(`发送验证码失败: ${error.message || '请稍后重试'}`);
+    throw new Error(`注册失败: ${error.message || '请稍后重试'}`);
+  }
+
+  // 2. 发送验证码到邮箱
+  const { error: sendError } = await client.auth.resendVerificationEmail({ email });
+  if (sendError) {
+    throw new Error(`发送验证码失败: ${sendError.message || '请稍后重试'}`);
   }
 }
 
 /**
- * 用户注册（需要验证码）
+ * 第二步：验证邮箱验证码，完成注册并登录
  */
 export async function registerWithVerification(
   email: string,
@@ -41,7 +54,7 @@ export async function registerWithVerification(
   await initInsforgeClient();
   const client = getInsforgeClient();
 
-  // 1. 先验证邮箱验证码
+  // 1. 验证邮箱验证码
   const { error: verifyError } = await client.auth.verifyEmail({
     email,
     otp: verificationCode,
@@ -51,32 +64,8 @@ export async function registerWithVerification(
     throw new Error('验证码错误或已过期，请重新获取');
   }
 
-  // 2. 注册账号
-  const { data, error } = await client.auth.signUp({
-    email,
-    password,
-    name: username,
-  });
-
-  if (error || !data) {
-    throw new Error(`注册失败: ${error?.message || '请稍后重试'}`);
-  }
-
-  // InsForge 注册后可能需要再次登录获取 token
-  if (!data.accessToken) {
-    // 注册成功但需要登录
-    return await login(email, password);
-  }
-
-  const user: User = {
-    id: data.user?.id || '',
-    email: data.user?.email || email,
-    username: data.user?.name || username,
-    email_verified: true,
-    created_at: data.user?.createdAt || new Date().toISOString(),
-  };
-
-  return { user, accessToken: data.accessToken };
+  // 2. 验证成功后登录获取 token
+  return await login(email, password);
 }
 
 /**
