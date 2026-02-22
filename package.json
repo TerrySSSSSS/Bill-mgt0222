@@ -8,6 +8,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build": "expo export",
     "lint": "expo lint",
     "insforge": "node insforge-mock-server.js",
     "insforge:bg": "node insforge-mock-server.js &",
