@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Camera } from 'expo-camera';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { parseImageToBill, BillData } from '@/services/insforge-ai';
+import { parseImageToBill, BillData } from '@/services/gemini-ai';
 import { useAuthStore } from '@/store/auth';
 import { X } from 'lucide-react-native';
 

@@ -7,8 +7,8 @@
         "@insforge/mcp@latest"
       ],
       "env": {
-        "API_KEY": "ik_7ef84c7032e3c45a56867999943094f1",
-        "API_BASE_URL": "https://3jusuein.us-west.insforge.app"
+        "API_KEY": "ik_e2dc086c6e39ccf0ccb86fb18380a740",
+        "API_BASE_URL": "https://c6xm83me.us-east.insforge.app"
       }
     }
   }

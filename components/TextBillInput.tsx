@@ -1,25 +1,34 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { parseTextToBill, BillData } from '@/services/insforge-ai';
+import { parseTextToBill, BillData } from '@/services/gemini-ai';
 import { useAuthStore } from '@/store/auth';
-import { X } from 'lucide-react-native';
+import { X, Mic } from 'lucide-react-native';
 
 interface TextBillInputProps {
   visible: boolean;
   onClose: () => void;
   onComplete: (billData: BillData) => void;
+  initialText?: string;
+  onSwitchToVoice?: () => void;
 }
 
-export default function TextBillInput({ visible, onClose, onComplete }: TextBillInputProps) {
+export default function TextBillInput({ visible, onClose, onComplete, initialText, onSwitchToVoice }: TextBillInputProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { token, isAuthenticated } = useAuthStore();
 
-  const [text, setText] = useState('');
+  const [text, setText] = useState(initialText || '');
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [result, setResult] = useState<BillData | null>(null);
+
+  // 当弹窗打开且有 initialText 时，更新文本
+  useEffect(() => {
+    if (visible && initialText) {
+      setText(initialText);
+    }
+  }, [visible, initialText]);
 
   const handleRecognize = async () => {
     if (!text.trim()) {
@@ -96,21 +105,32 @@ export default function TextBillInput({ visible, onClose, onComplete }: TextBill
             </View>
 
             {/* 文本输入 */}
-            <TextInput
-              style={[styles.textInput, {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                color: colors.text
-              }]}
-              placeholder="请输入账单描述..."
-              placeholderTextColor={colors.textSecondary}
-              value={text}
-              onChangeText={setText}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              editable={!isRecognizing && !result}
-            />
+            <View style={styles.inputRow}>
+              <TextInput
+                style={[styles.textInput, {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  color: colors.text
+                }]}
+                placeholder="请输入账单描述..."
+                placeholderTextColor={colors.textSecondary}
+                value={text}
+                onChangeText={setText}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                editable={!isRecognizing && !result}
+              />
+              {onSwitchToVoice && !result && (
+                <TouchableOpacity
+                  style={[styles.voiceButton, { backgroundColor: colors.income }]}
+                  onPress={onSwitchToVoice}
+                  disabled={isRecognizing}
+                >
+                  <Mic size={22} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+            </View>
 
             {/* 识别中 */}
             {isRecognizing && (
@@ -248,13 +268,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    gap: 8,
+  },
   textInput: {
+    flex: 1,
     borderWidth: 1,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
     minHeight: 120,
-    marginBottom: 16,
+  },
+  voiceButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
   },
   loadingContainer: {
     alignItems: 'center',

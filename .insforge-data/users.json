@@ -1,0 +1,11 @@
+{
+  "test@example.com": {
+    "id": "user_1770973863605",
+    "email": "test@example.com",
+    "username": "测试用户",
+    "createdAt": "2026-02-13T09:11:03.605Z",
+    "updatedAt": "2026-02-13T09:11:03.605Z",
+    "emailVerified": true,
+    "password": "test123"
+  }
+}

@@ -9,7 +9,7 @@ import { Transaction } from '@/db/sqlite/schema';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAccountStore } from '@/store/useAccountStore';
 import { useTransactionStore } from '@/store/useTransactionStore';
-import { BillData } from '@/services/insforge-ai';
+import { BillData } from '@/services/gemini-ai';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Bell, Search } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
@@ -117,6 +117,10 @@ export default function HomeScreen() {
         visible={showVoiceInput}
         onClose={() => setShowVoiceInput(false)}
         onComplete={handleAIResult}
+        onSwitchToText={(text) => {
+          setShowVoiceInput(false);
+          router.push(`/add-transaction?voiceText=${encodeURIComponent(text)}`);
+        }}
       />
     </SafeAreaView>
   );

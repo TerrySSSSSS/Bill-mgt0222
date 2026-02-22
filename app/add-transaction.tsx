@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import TextBillInput from '@/components/TextBillInput';
 import VoiceBillInput from '@/components/VoiceBillInput';
 import ImageBillInput from '@/components/ImageBillInput';
-import { BillData } from '@/services/insforge-ai';
+import { BillData } from '@/services/gemini-ai';
 import { matchCategory } from '@/utils/category-matcher';
 
 type TransactionType = 'expense' | 'income';
@@ -21,7 +21,7 @@ export default function AddTransactionScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const router = useRouter();
-  const { id, aiData } = useLocalSearchParams<{ id?: string; aiData?: string }>();
+  const { id, aiData, voiceText } = useLocalSearchParams<{ id?: string; aiData?: string; voiceText?: string }>();
   const isEditMode = !!id;
 
   const { accounts, fetchAccounts } = useAccountStore();
@@ -29,7 +29,7 @@ export default function AddTransactionScreen() {
 
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(EXPENSE_CATEGORIES[0]);
+  const [selectedCategory, setSelectedCategory] = useState<{ name: string; icon: string; color: string }>(EXPENSE_CATEGORIES[0]);
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
   const [description, setDescription] = useState('');
   const [showAccountPicker, setShowAccountPicker] = useState(false);
@@ -40,6 +40,7 @@ export default function AddTransactionScreen() {
   const [showTextInput, setShowTextInput] = useState(false);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [showImageInput, setShowImageInput] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
 
   // 加载账户数据
   useEffect(() => { fetchAccounts(); }, []);
@@ -76,6 +77,14 @@ export default function AddTransactionScreen() {
       }
     }
   }, [aiData, isEditMode]);
+
+  // 处理从主页面传递过来的语音识别文本
+  useEffect(() => {
+    if (voiceText && !isEditMode) {
+      setVoiceTranscript(voiceText);
+      setShowTextInput(true);
+    }
+  }, [voiceText, isEditMode]);
 
   const loadTransaction = async (transactionId: number) => {
     setIsLoading(true);
@@ -244,13 +253,30 @@ export default function AddTransactionScreen() {
       {/* AI 智能输入 Modals */}
       <TextBillInput
         visible={showTextInput}
-        onClose={() => setShowTextInput(false)}
+        onClose={() => {
+          setShowTextInput(false);
+          setVoiceTranscript('');
+        }}
         onComplete={handleAIResult}
+        initialText={voiceTranscript}
+        onSwitchToVoice={() => {
+          setShowTextInput(false);
+          setVoiceTranscript('');
+          setShowVoiceInput(true);
+        }}
       />
       <VoiceBillInput
         visible={showVoiceInput}
-        onClose={() => setShowVoiceInput(false)}
+        onClose={() => {
+          setShowVoiceInput(false);
+          setVoiceTranscript(''); // 关闭时清空语音识别文本
+        }}
         onComplete={handleAIResult}
+        onSwitchToText={(text) => {
+          setShowVoiceInput(false);
+          setVoiceTranscript(text);
+          setShowTextInput(true);
+        }}
       />
       <ImageBillInput
         visible={showImageInput}
